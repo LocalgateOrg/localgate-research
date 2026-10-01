@@ -1,0 +1,41 @@
+{
+  "cff-version": "1.2.0",
+  "message": "Cite the accompanying unpublished manuscript and specify the repository commit used.",
+  "type": "software",
+  "title": "LocalGate research package",
+  "authors": [
+    {
+      "family-names": "Meissner",
+      "given-names": "Noah"
+    },
+    {
+      "family-names": "Bullard",
+      "given-names": "Samuel Ruairí"
+    },
+    {
+      "family-names": "Mizzaro",
+      "given-names": "Federico"
+    }
+  ],
+  "repository-code": "https://github.com/LocalgateOrg/localgate-research",
+  "preferred-citation": {
+    "type": "unpublished",
+    "title": "Cost Is Only Half the Decision: Users Cannot Forecast Small-Model Success",
+    "authors": [
+      {
+        "family-names": "Meissner",
+        "given-names": "Noah"
+      },
+      {
+        "family-names": "Bullard",
+        "given-names": "Samuel Ruairí"
+      },
+      {
+        "family-names": "Mizzaro",
+        "given-names": "Federico"
+      }
+    ],
+    "year": 2026,
+    "url": "https://github.com/LocalgateOrg/localgate-research"
+  }
+}

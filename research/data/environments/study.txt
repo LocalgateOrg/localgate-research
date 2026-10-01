@@ -1,0 +1,5 @@
+# Thirty-generation reference run.
+vllm==0.29.0
+torch==2.13.0
+transformers==5.17.0
+codecarbon==3.3.1

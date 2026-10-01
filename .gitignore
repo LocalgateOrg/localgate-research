@@ -1,0 +1,27 @@
+# Local credentials and environment configuration
+.env
+.env.*
+!.env.example
+credentials.txt
+*.pem
+*.key
+
+# Local environments, caches and build products
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+node_modules/
+.DS_Store
+
+# Private inputs must stay outside the public package
+private/
+participant-responses/
+
+# Package/build and local figure outputs
+build/
+dist/
+.ruff_cache/
+output/

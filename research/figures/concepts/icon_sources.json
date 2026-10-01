@@ -1,0 +1,51 @@
+{
+  "library": "Lucide",
+  "commit": "f06ac67e33d645c40b8ce19a0419c85c5d7dd751",
+  "license": "ISC; Feather-derived icons MIT, see ICON_LICENSE.txt",
+  "rendering": "SVG geometry preserved in PGF paths; common dark-teal stroke; original currentColor SVG retained",
+  "icons": {
+    "questions": {
+      "name": "circle-question-mark",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/f06ac67e33d645c40b8ce19a0419c85c5d7dd751/icons/circle-question-mark.svg",
+      "sha256": "975db087da041530dbf59ba1e61a7b99c3519fad43dae6375e42ccc74ba63924"
+    },
+    "answers": {
+      "name": "repeat-2",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/f06ac67e33d645c40b8ce19a0419c85c5d7dd751/icons/repeat-2.svg",
+      "sha256": "788912bbfdeab0401a36e29cde95ef594b59957a13d3e08a392d10f59c49e7da"
+    },
+    "grading": {
+      "name": "clipboard-check",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/f06ac67e33d645c40b8ce19a0419c85c5d7dd751/icons/clipboard-check.svg",
+      "sha256": "e2bac86a6b24caa0d7d0dcc2719ec6b7870ec5eef2d21afae498d8cb5eefda96"
+    },
+    "reference": {
+      "name": "percent",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/f06ac67e33d645c40b8ce19a0419c85c5d7dd751/icons/percent.svg",
+      "sha256": "580948bc2c69b84380f0d1e628d85227600886e3f1620effb1ae300b750a9dc0"
+    },
+    "human": {
+      "name": "users-round",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/f06ac67e33d645c40b8ce19a0419c85c5d7dd751/icons/users-round.svg",
+      "sha256": "8b41ee3ada1609e25a410d64056aa333952cf27d770f0c379a100065270de7f7"
+    },
+    "classifier": {
+      "name": "cpu",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/f06ac67e33d645c40b8ce19a0419c85c5d7dd751/icons/cpu.svg",
+      "sha256": "ec83bb69ec029d367d749afc445b39c8e95891ebf99b0400652677c2b149b99c"
+    },
+    "routing": {
+      "name": "split",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/f06ac67e33d645c40b8ce19a0419c85c5d7dd751/icons/split.svg",
+      "sha256": "7b8bebfea5419548e9fed898c8c8cfa7b4ddd910628eab44d3903ccce077dd73"
+    },
+    "outcomes": {
+      "name": "zap",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/f06ac67e33d645c40b8ce19a0419c85c5d7dd751/icons/zap.svg",
+      "sha256": "4c395891eab4d1e5627c5d414a16db037317cb2f12453de0f3a1130964c6d444"
+    }
+  },
+  "adaptations": [
+    "All zap path numeric arguments and arc flags explicitly separated for PGF parser compatibility; geometry unchanged."
+  ]
+}

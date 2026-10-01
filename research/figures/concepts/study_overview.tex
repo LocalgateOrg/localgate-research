@@ -1,0 +1,59 @@
+\documentclass[10pt]{article}
+\usepackage[paperwidth=7.005604in,paperheight=4.95in,margin=0in]{geometry}
+\usepackage{libertine}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,svg.path}
+\definecolor{studyaccent}{HTML}{245C70}
+\input{study_icons.tex}
+\newcommand{\studyicon}[1]{\begin{tikzpicture}[x=1pt,y=1pt,xscale=.65,yscale=-.65,
+  draw=studyaccent,line width=.9pt,line cap=round,line join=round]
+  \path[use as bounding box] (0,0) rectangle (24,24);
+  \csname studyicon#1\endcsname
+  \end{tikzpicture}}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\pdfsuppressptexinfo=15
+\newcommand{\detail}[1]{{\fontsize{9}{11}\selectfont #1}}
+\begin{document}
+\noindent\begin{tikzpicture}[x=1cm,y=1cm,
+  font=\fontsize{10}{12}\selectfont,
+  box/.style={draw=black!55,line width=.45pt,align=center,inner sep=6pt,minimum height=1.30cm},
+  flow/.style={-{Stealth[length=1.8mm]},line width=.55pt,draw=black!70},
+  phase/.style={anchor=west,font=\fontsize{11}{13}\selectfont\bfseries}]
+\path[use as bounding box] (0,0) rectangle (17.7942,12.3);
+
+% Labels identify study steps; the figure's title belongs in its caption.
+\node[phase] at (.40,11.93) {1. Observe the local model's answer success};
+\node[box,text width=3.1cm,minimum height=2.02cm] (questions) at (2.15,10.45) {\studyicon{questions}\\[2pt]Open-ended\\questions};
+\node[box,text width=3.1cm,minimum height=2.02cm] (answers) at (6.65,10.45) {\studyicon{answers}\\[2pt]Repeated answers\\from the local model};
+\node[box,text width=3.1cm,minimum height=2.02cm] (grading) at (11.15,10.45) {\studyicon{grading}\\[2pt]Reference-based\\grading};
+\node[box,text width=3.1cm,minimum height=2.02cm] (reference) at (15.65,10.45) {\studyicon{reference}\\[2pt]Observed success\\fraction};
+\draw[flow] (questions) -- (answers);
+\draw[flow] (answers) -- (grading);
+\draw[flow] (grading) -- (reference);
+
+\draw[black!25,line width=.4pt] (.4,9.23) -- (17.4,9.23);
+\node[phase] at (.40,8.92) {2. Test who can forecast that success};
+\node[box,text width=6.1cm,minimum height=1.5cm] (human) at (4.65,7.70)
+ {\raisebox{-3pt}{\studyicon{human}}\hspace{5pt}\textbf{RQ1: Human forecasts}\\[2pt]\detail{Predict success from the question}};
+\node[box,text width=6.1cm,minimum height=1.5cm] (classifier) at (13.15,7.70)
+ {\raisebox{-3pt}{\studyicon{classifier}}\hspace{5pt}\textbf{RQ2: Classifier forecasts}\\[2pt]\detail{Predict success from question text}};
+\node[box,text width=9.7cm,minimum height=1.55cm] (comparison) at (8.90,5.60)
+ {\textbf{Paired comparison: @@PAIRED@@ questions}\\[2pt]\detail{Both forecasts compared with the observed reference}\\\detail{@@STUDY_K@@ local-model answers per question}};
+\draw[flow] (human.south) -- (comparison.north -| human.south);
+\draw[flow] (classifier.south) -- (comparison.north -| classifier.south);
+\node[align=center] at (8.90,4.13)
+ {Additional classifier evaluation: @@REMAINDER@@ questions\\[2pt]\detail{Reference: @@SCREENING_K@@ local-model answers per question}};
+
+\draw[black!25,line width=.4pt] (.4,3.35) -- (17.4,3.35);
+\node[phase] at (.40,2.95) {3. Examine conditional routing consequences (RQ3)};
+\node[box,text width=4.62cm,minimum height=2.5cm] (inputs) at (2.92,1.30)
+ {\studyicon{classifier}\\[2pt]Human and classifier forecasts\\+ observed reference success};
+\node[box,text width=4.62cm,minimum height=2.5cm] (scenarios) at (8.90,1.30)
+ {\studyicon{routing}\\[2pt]Local/cloud routing scenarios\\[2pt]\detail{Cost, retry and cloud-success}\\\detail{assumptions}};
+\node[box,text width=4.62cm,minimum height=2.5cm] (outcomes) at (14.88,1.30)
+ {\studyicon{outcomes}\\[2pt]Electricity demand\\and expected answer success};
+\draw[flow] (inputs) -- (scenarios);
+\draw[flow] (scenarios) -- (outcomes);
+\end{tikzpicture}
+\end{document}
