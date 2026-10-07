@@ -1398,6 +1398,9 @@ model = [
     { name = "torch" },
     { name = "transformers" },
 ]
+tdm = [
+    { name = "pyarrow" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -1412,6 +1415,7 @@ requires-dist = [
     { name = "pandas", specifier = "==3.0.6" },
     { name = "peft", marker = "extra == 'measurement'", specifier = "==0.20.0" },
     { name = "peft", marker = "extra == 'model'", specifier = "==0.20.0" },
+    { name = "pyarrow", marker = "extra == 'tdm'", specifier = "==25.0.1" },
     { name = "pydantic-ai-slim", extras = ["anthropic", "bedrock", "openai", "retries"], specifier = "==2.51.0" },
     { name = "safetensors", marker = "extra == 'measurement'", specifier = "==0.8.0" },
     { name = "safetensors", marker = "extra == 'model'", specifier = "==0.8.0" },
@@ -1423,7 +1427,7 @@ requires-dist = [
     { name = "transformers", marker = "extra == 'measurement'", specifier = "==5.14.1" },
     { name = "transformers", marker = "extra == 'model'", specifier = "==5.14.1" },
 ]
-provides-extras = ["corpus", "model", "measurement"]
+provides-extras = ["corpus", "model", "measurement", "tdm"]
 
 [[package]]
 name = "logfire-api"

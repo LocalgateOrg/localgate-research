@@ -37,6 +37,9 @@ measurement = [
     "safetensors==0.8.0",
     "codecarbon==3.2.7",
 ]
+tdm = [
+    "pyarrow==25.0.1",
+]
 
 [project.scripts]
 localgate-data = "research.data.__main__:main"
@@ -44,6 +47,7 @@ localgate-analysis = "research.analysis.__main__:main"
 localgate-grade = "research.grading.judge:main"
 localgate-figures = "research.figures.reproduce:main"
 localgate-model = "research.model_source.__main__:main"
+localgate-tdm = "research.tdm.__main__:main"
 
 [tool.setuptools]
 packages = [
@@ -55,6 +59,7 @@ packages = [
     "research.figures.concepts",
     "research.model_source",
     "research.model_source.localgate_research",
+    "research.tdm",
 ]
 
 [tool.setuptools.package-data]
