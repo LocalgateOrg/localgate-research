@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent, PromptedOutput
 
 from research.analysis.data_io import InputError, read_records, sha256
-from research.data import corpus
+from research.data import corpus, prompts_v2
 from research.grading import batch, providers
 
 # Converter and grading panel must use different model lineages.
@@ -282,6 +282,36 @@ def prompt_version() -> str:
 PROMPT_VERSION = prompt_version()
 
 
+class PromptSet:
+    """One complete converter instrument: three prompts and their output schemas.
+
+    v1 is the frozen instrument behind the released data (its digest is
+    PROMPT_VERSION); v2 applies the M1 definitions (task L1, `prompts_v2.py`).
+    """
+
+    def __init__(self, name, judge, rescore, rewrite, verdict, rescore_model, rewrite_model):
+        self.name, self.judge, self.rescore, self.rewrite = name, judge, rescore, rewrite
+        self.verdict, self.rescore_model, self.rewrite_model = verdict, rescore_model, rewrite_model
+        schemas = (json.dumps(m.model_json_schema(), sort_keys=True) for m in (verdict, rescore_model, rewrite_model))
+        self.version = hashlib.sha256("\0".join((judge, rescore, rewrite, *schemas)).encode()).hexdigest()[:12]
+
+
+PROMPT_SETS = {
+    "v1": PromptSet("v1", SYSTEM_JUDGE, SYSTEM_RESCORE, SYSTEM_REWRITE, Verdict, Rescore, Rewrite),
+    "v2": PromptSet("v2", prompts_v2.SYSTEM_JUDGE + LABEL_INSTRUCTION, prompts_v2.SYSTEM_RESCORE + LABEL_INSTRUCTION,
+                    prompts_v2.SYSTEM_REWRITE, prompts_v2.Verdict, prompts_v2.Rescore, prompts_v2.Rewrite),
+}
+assert PROMPT_SETS["v1"].version == PROMPT_VERSION, "v1 must stay the released instrument"
+# The instrument this process runs with; set once from --prompts before any call.
+ACTIVE = PROMPT_SETS["v1"]
+
+
+def use_prompts(name: str) -> PromptSet:
+    global ACTIVE
+    ACTIVE = PROMPT_SETS[name]
+    return ACTIVE
+
+
 def require_retrying(model: object, spec: str) -> None:
     """Refuse to run a batch on a bare `provider:model` string.
 
@@ -301,11 +331,11 @@ def check_provenance(paths: list[Path], model_name: str) -> None:
         for record in batch.load(path).values():
             if "error" in record:
                 continue
-            if (record.get("prompts"), record.get("model")) != (PROMPT_VERSION, model_name):
+            if (record.get("prompts"), record.get("model")) != (ACTIVE.version, model_name):
                 raise SystemExit(
                     f"  {path} holds records from {record.get('model')} / prompts "
                     f"{record.get('prompts')}, but this run is {model_name} / "
-                    f"{PROMPT_VERSION}. Move or delete the file to start fresh."
+                    f"{ACTIVE.version}. Move or delete the file to start fresh."
                 )
 
 
@@ -357,7 +387,7 @@ def finalise(
         "reference_answer": answer_text,
         # Which instrument produced this verdict.
         "model": model,
-        "prompts": PROMPT_VERSION,
+        "prompts": ACTIVE.version,
     }
     if score is not None:
         record["score"] = score
@@ -406,6 +436,9 @@ async def run_judge(
             failure=result.output.failure,
             model=model_name,
         )
+        if hasattr(result.output, "answer_key_ok"):
+            # v2: a doubtful answer key is reported for fixing, separately from the verdict.
+            record["answer_key_ok"] = result.output.answer_key_ok
         record["tokens"] = tokens_of(result)
         return record
 
@@ -466,15 +499,23 @@ async def run_rewrite(
 ) -> dict[str, dict]:
     async def work(row: dict) -> dict:
         # No answer_key lookup: this pass is deliberately blind to the answer.
-        result = await ask(agent, stem_only(row))
-        question = result.output.standalone_question.strip()
-        return {
+        if ACTIVE.name == "v1":
+            result = await ask(agent, stem_only(row))
+            question, flagged = result.output.standalone_question.strip(), False
+        else:
+            # v2: a long case or passage is kept word for word; only the question is rewritten.
+            result = await ask(agent, prompts_v2.rewrite_input(row["question"]))
+            question, flagged = prompts_v2.assemble_rewrite(row["question"], result.output.standalone_question)
+        record = {
             "question_id": row["question_id"],
             "open_question": question if result.output.possible else "",
             "model": model_name,
-            "prompts": PROMPT_VERSION,
+            "prompts": ACTIVE.version,
             "tokens": tokens_of(result),
         }
+        if flagged:
+            record["length_flag"] = True  # much shorter than a long original: review before release
+        return record
 
     return await batch.run(
         rows,
@@ -627,7 +668,7 @@ def summarise(records: list[dict]) -> dict[str, object]:
         "dangling": len(stuck),
         "answer_leaks": len(leaked),
         "rewrite_errors": rewrite_errors,
-        "prompts": PROMPT_VERSION,
+        "prompts": ACTIVE.version,
     }
 
 
@@ -739,7 +780,7 @@ def bind_run(args: argparse.Namespace, input_paths: tuple[Path, ...]) -> None:
     path = args.out.with_suffix(args.out.suffix + ".manifest.json")
     validate_distinct_output(path, input_paths)
     expected = {
-        "stage": args.command, "model": args.model, "prompts": PROMPT_VERSION,
+        "stage": args.command, "model": args.model, "prompts": ACTIVE.version,
         "temperature": 0.0, "readmit_at": READMIT_AT, "output_retries": 3,
         "limit": args.limit, "limit_seed": LIMIT_SEED,
         "input_sha256": [sha256(source) for source in input_paths],
@@ -858,9 +899,9 @@ def build_agent(model_name: str, stage: str) -> Agent:
     model = providers.resolve(model_name)
     require_retrying(model, model_name)
     output_type, system_prompt = {
-        "judge": (Verdict, SYSTEM_JUDGE),
-        "rescore": (Rescore, SYSTEM_RESCORE),
-        "rewrite": (Rewrite, SYSTEM_REWRITE),
+        "judge": (ACTIVE.verdict, ACTIVE.judge),
+        "rescore": (ACTIVE.rescore_model, ACTIVE.rescore),
+        "rewrite": (ACTIVE.rewrite_model, ACTIVE.rewrite),
     }[stage]
     return Agent(
         model,
@@ -903,6 +944,12 @@ def add_live_options(parser: argparse.ArgumentParser, *, answer_key: bool) -> No
     parser.add_argument("--limit", type=positive_int)
     parser.add_argument("--concurrency", type=positive_int, default=batch.DEFAULT_CONCURRENCY)
     parser.add_argument("--retry-failed", action="store_true")
+    add_prompts_option(parser)
+
+
+def add_prompts_option(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--prompts", choices=sorted(PROMPT_SETS), default="v1",
+                        help="v1: the released instrument (default); v2: the M1 definitions (task L1)")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -929,11 +976,13 @@ def build_parser() -> argparse.ArgumentParser:
     replay_parser.add_argument("--rewrite-log", type=Path, required=True)
     replay_parser.add_argument("--out", type=Path, required=True)
     replay_parser.add_argument("--model", default=DEFAULT_MODEL)
+    add_prompts_option(replay_parser)
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    use_prompts(args.prompts)
 
     if args.command == "replay":
         inputs = (args.judge_log, args.rescore_log, args.rewrite_log)

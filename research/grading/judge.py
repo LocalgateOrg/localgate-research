@@ -96,6 +96,25 @@ def prompt_version() -> str:
 PROMPT_VERSION = prompt_version()
 
 
+def _grading_version(system: str, grade: type) -> str:
+    schema = json.dumps(grade.model_json_schema(), sort_keys=True)
+    return hashlib.sha256(f"{system}\0{schema}".encode()).hexdigest()[:12]
+
+
+def _prompt_sets() -> dict[str, tuple[str, type, str]]:
+    """name -> (system prompt, schema, digest). v1 is frozen; v2 is task L1."""
+    from research.data import prompts_v2
+
+    return {
+        "v1": (SYSTEM_GRADE, Grade, PROMPT_VERSION),
+        "v2": (prompts_v2.SYSTEM_GRADE, prompts_v2.Grade, _grading_version(prompts_v2.SYSTEM_GRADE, prompts_v2.Grade)),
+    }
+
+
+PROMPT_SETS = _prompt_sets()
+ACTIVE_PROMPTS = "v1"  # set once from --prompts before grading
+
+
 # A response with no visible characters cannot be graded and must not cost three judge
 # calls. Anything else — however short or strange — goes to the judges: cheap heuristics
 # beyond emptiness would be a second, unvalidated grader.
@@ -211,12 +230,12 @@ def check_provenance(
                 f"but the current template digests to {TEMPLATE_VERSION} — the "
                 "user message changed; do not mix instruments in one file"
             )
-        if found != (PROMPT_VERSION, judge, output_mode, reasoning_effort):
+        if found != (PROMPT_SETS[ACTIVE_PROMPTS][2], judge, output_mode, reasoning_effort):
             raise SystemExit(
                 f"{path} holds records from judge={record.get('judge')} "
                 f"prompts={record.get('prompts')} mode={found[2]} "
                 f"effort={found[3]}, but this run is judge={judge} "
-                f"prompts={PROMPT_VERSION} mode={output_mode} "
+                f"prompts={PROMPT_SETS[ACTIVE_PROMPTS][2]} mode={output_mode} "
                 f"effort={reasoning_effort}. Move or delete the file to start fresh."
             )
         return  # one record is enough; the file is append-only under one instrument
@@ -339,7 +358,8 @@ async def run_judge(
 
     # Prompted mode supplies the response schema in the instructions; tool mode
     # supplies it through a tool definition. Both use the same grading schema.
-    output = PromptedOutput(Grade) if output_mode == "prompted" else Grade
+    system_prompt, grade_schema, prompts_version = PROMPT_SETS[ACTIVE_PROMPTS]
+    output = PromptedOutput(grade_schema) if output_mode == "prompted" else grade_schema
     model = EscapeRepairModel(providers.resolve(spec))
     settings: dict = {"temperature": 0.0, "max_tokens": MAX_OUTPUT_TOKENS}
     if reasoning_effort:
@@ -350,7 +370,7 @@ async def run_judge(
     agent = Agent(
         model,
         output_type=output,
-        system_prompt=SYSTEM_GRADE,
+        system_prompt=system_prompt,
         model_settings=settings,
         retries={"output": 3},
     )
@@ -360,7 +380,7 @@ async def run_judge(
             "question_id": item["question_id"],
             "rep": item["rep"],
             "judge": spec,
-            "prompts": PROMPT_VERSION,
+            "prompts": prompts_version,
             "template": TEMPLATE_VERSION,
             "output_mode": output_mode,
             "reasoning_effort": reasoning_effort,
@@ -546,6 +566,8 @@ Use --panel for offline aggregation or --judge for live grading. A nonempty
         "--panel", nargs="*", type=Path, help="three judge files to join into per-question labels"
     )
     parser.add_argument("--concurrency", type=positive_int, default=8)
+    parser.add_argument("--prompts", choices=("v1", "v2"), default="v1",
+                        help="v1: the released rubric (default); v2: the M1 definitions (task L1)")
     parser.add_argument("--retry-failed", action="store_true")
     parser.add_argument(
         "--output-mode",
@@ -587,6 +609,8 @@ Use --panel for offline aggregation or --judge for live grading. A nonempty
         "--force", action="store_true", help="panel only: overwrite existing panel outputs"
     )
     args = parser.parse_args(argv)
+    global ACTIVE_PROMPTS
+    ACTIVE_PROMPTS = args.prompts
 
     if args.panel:
         if args.closed_labels is None:
