@@ -32,7 +32,7 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 
-from research.tdm.instruments import INSTRUMENTS, Instrument
+from research.tdm.instruments import INSTRUMENTS, VARIANTS, Instrument
 
 PROVIDERS = {
     "openrouter": "https://openrouter.ai/api/alpha/decisions",
@@ -185,6 +185,15 @@ def send(provider: str, model: str, body: dict, retries: int = 4) -> dict:
     raise ProviderError("unreachable")
 
 
+def wrong_reference(row: dict, options: list[str], reference: str) -> str | None:
+    """A plausible wrong answer: one of the item's distractor options, chosen by hash so it is stable."""
+    distractors = [o for o in options if o.strip() != reference.strip()]
+    if not distractors:
+        return None
+    pick = int(hashlib.sha256(str(row.get("key") or row["question_id"]).encode()).hexdigest(), 16)
+    return distractors[pick % len(distractors)]
+
+
 def record_key(row: dict, variant: str) -> str:
     item = row.get("key") or str(row["question_id"])
     return f"{item}|{variant}"
@@ -224,7 +233,7 @@ def run(
     with out.open("a", encoding="utf-8") as log:
         for row in rows:
             for variant in variants:
-                if variant == "flipped" and not instrument.flipped:
+                if not instrument.supports(variant):
                     continue
                 key = record_key(row, variant)
                 if key in done:
@@ -265,7 +274,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--items", type=Path, required=True, help="output directory of `localgate-tdm items`")
     parser.add_argument("--model", required=True, help="provider:model, e.g. openrouter:typesafe/jev-1.13-20260917 or readout:<model>")
     parser.add_argument("--out", type=Path, required=True, help="append-only JSONL log")
-    parser.add_argument("--variants", nargs="+", default=["base"], choices=["base", "flipped"])
+    parser.add_argument("--variants", nargs="+", default=["base"], choices=list(VARIANTS),
+                        help="consistency variants; ones an instrument does not have are skipped")
     parser.add_argument("--human-labelled-only", action="store_true", help="only rows that carry human labels")
     parser.add_argument("--ids", type=Path, help="file with one item key or question_id per line (e.g. a dev split)")
     parser.add_argument("--limit", type=int)
@@ -283,6 +293,8 @@ def main(argv: list[str] | None = None) -> int:
         rows = [r for r in rows if str(r.get("key") or r["question_id"]) in wanted]
     if args.limit:
         rows = rows[: args.limit]
+    if "wrong_reference" in args.variants and instrument.stage == "judging":
+        rows = [{**r, "wrong_reference": wrong_reference(r, r.get("options") or [], r["reference_answer"])} for r in rows]
     counts = run(instrument, rows, args.model, args.out, args.variants, args.dry_run)
     print(f"{instrument.name}@{instrument.digest()} on {args.model}: {counts}")
     return 0

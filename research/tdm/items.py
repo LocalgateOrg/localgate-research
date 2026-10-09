@@ -54,6 +54,14 @@ for _split in ("train", "validation", "test", "excluded_stem_leak"):
         f"generations/{_split}-00000-of-00001.parquet",
     )
 
+# The original multiple-choice items with all their options, for every one of the
+# 12,032 questions: the filter and rewrite instruments show the options, and the
+# wrong-reference probe needs a distractor for every graded response.
+CLOSED_REPO = "localgate/mmlu-pro-closed"
+CLOSED_REVISION = "de3c3d7bd8870e6ec48f03284f3e48042bae9ecf"
+for _split in ("train", "validation", "test", "excluded_stem_leak"):
+    SOURCES[f"closed_{_split}"] = (CLOSED_REPO, CLOSED_REVISION, f"data/{_split}-00000-of-00001.parquet")
+
 EXPECTED_ROWS = {
     "conversion_record": 12_032,
     "judgements": 126_810,
@@ -135,7 +143,11 @@ def build(paths: dict[str, Path]) -> dict[str, list[dict]]:
         [frames.pop(name) for name in list(frames) if name.startswith("generations_")],
         ignore_index=True,
     )
-    for name, expected in {**EXPECTED_ROWS, "generations": 42_270}.items():
+    frames["closed"] = pd.concat(
+        [frames.pop(name) for name in list(frames) if name.startswith("closed_")],
+        ignore_index=True,
+    )
+    for name, expected in {**EXPECTED_ROWS, "generations": 42_270, "closed": 12_032}.items():
         if len(frames[name]) != expected:
             raise InputError(f"{name}: expected {expected} rows, found {len(frames[name])}")
 
@@ -143,6 +155,15 @@ def build(paths: dict[str, Path]) -> dict[str, list[dict]]:
     for row in conversion.values():
         row["stratum"] = conversion_stratum(row)
         row["reference_type"] = reference_type(row["reference_answer"])
+
+    closed = {row["question_id"]: row for row in _records(frames["closed"])}
+    missing = set(conversion) - set(closed)
+    if missing:
+        raise InputError(f"{len(missing)} questions have no multiple-choice record, e.g. {sorted(missing)[:3]}")
+    options = {qid: list(closed[qid]["options"]) for qid in conversion}
+    mismatched = [qid for qid in conversion if closed[qid]["answer_text"].strip() != conversion[qid]["reference_answer"].strip()]
+    if mismatched:
+        raise InputError(f"{len(mismatched)} references differ from the multiple-choice answer, e.g. {mismatched[:3]}")
 
     # Filter: every MMLU-Pro question with the converter's decision; human votes
     # where the Stage-1 audit covered it.
@@ -163,7 +184,7 @@ def build(paths: dict[str, Path]) -> dict[str, list[dict]]:
                 "baseline_rescore": row["score"],
                 "baseline_convertible": row["convertible"],
                 "stage": row["stage"],
-                "options": human["options"] if human else None,
+                "options": options[qid],
                 "audit_blind_id": human["blind_id"] if human else None,
                 "human_votes": [human[f"{h}_converts"] for h in HUMANS] if human else None,
                 "human_unsure": [human[f"{h}_unsure"] for h in HUMANS] if human else None,
@@ -188,7 +209,7 @@ def build(paths: dict[str, Path]) -> dict[str, list[dict]]:
                 "reference_answer": row["reference_answer"],
                 "reference_type": row["reference_type"],
                 "stratum": row["stratum"],
-                "options": human["options"] if human else None,
+                "options": options[qid],
                 "audit_blind_id": human["blind_id"] if human else None,
                 "human_same_question": [human[f"{h}_same_question"] for h in HUMANS] if human else None,
                 "human_self_contained": [human[f"{h}_self_contained"] for h in HUMANS] if human else None,
@@ -233,6 +254,7 @@ def build(paths: dict[str, Path]) -> dict[str, list[dict]]:
                 "question": source["open_question"],
                 "reference_answer": source["reference_answer"],
                 "reference_type": source["reference_type"],
+                "options": options[row["question_id"]],
                 "judge_verdicts": verdicts,
                 "baseline_match": matches >= 2,
                 "panel_unanimous_binary": matches in (0, 3),

@@ -62,6 +62,17 @@ uv run localgate-data generate open --corpus <corpus.jsonl> --out output/json-pi
   --output-format json --limit 5 --dry-run
 ```
 
+## Instruments (I1)
+
+`research/tdm/instruments.py` holds the frozen v0 drafts and the v1 drafts written from
+the prompt review (`research/docs/tdm-prompt-review.md`): `filter-v1` (adds
+`answer_key_usable`), `rewrite-audit-v1` (asks for missing context as a defect),
+`judge-choice-v1`, `judge-nouls-v1`, and `-final` versions of both that grade the
+structured final answer only (D12). Variants for the consistency checks, passed with
+`--variants`: `flipped` (Nouls), `rotated` (Choice options), `context` (a neutral
+sentence appended to the response) and `wrong_reference` (a distractor option as the
+reference). An instrument skips variants it does not have.
+
 ## Decision calls (S3)
 
 Sends a draft instrument to a pinned model and appends every call to a JSONL
