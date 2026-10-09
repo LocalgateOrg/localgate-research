@@ -1,8 +1,12 @@
 """Unit tests for the 1% numeric matcher. Run: uv run python -m unittest discover tests"""
 
+import json
 import unittest
+from pathlib import Path
 
 from research.tdm.numeric import match, parse_quantity
+
+FIXTURE = Path(__file__).parent / "fixtures" / "numeric_calibration.json"
 
 
 class ParseTests(unittest.TestCase):
@@ -16,6 +20,22 @@ class ParseTests(unittest.TestCase):
 
     def test_fraction(self):
         self.assertAlmostEqual(parse_quantity("3/4").value, 0.75)
+
+    def test_latex_as_written_in_the_released_references(self):
+        q = parse_quantity("-3.5 $^{\\circ} \\mathrm{C}$")
+        self.assertEqual((q.value, q.unit, q.dimension), (-3.5, "C", "temperature"))
+        q = parse_quantity("0.46$\\mathrm{~J}$")
+        self.assertEqual((q.value, q.dimension), (0.46, "energy"))
+        self.assertAlmostEqual(parse_quantity("3.0 \\times 10^-19").value, 3.0e-19)
+        self.assertIsNone(parse_quantity("-994.3 $\\mathrm{~kJ} \\mathrm{mol}^{-1}$"))  # compound unit: left to the TDM
+
+    def test_unit_words(self):
+        self.assertEqual(parse_quantity("3.03 × 10^-19 joule").dimension, "energy")
+
+    def test_only_ascii_digits(self):
+        # "How is the Arabic numeral for 2 written?" -> "٢" is a different glyph, not the number 2.
+        self.assertIsNone(parse_quantity("٢"))
+        self.assertIsNone(parse_quantity("２"))
 
     def test_rejects_multi_part_and_ranges(self):
         self.assertIsNone(parse_quantity("7 • 11"))
@@ -56,6 +76,36 @@ class MatchTests(unittest.TestCase):
 
     def test_text_is_undecided(self):
         self.cases([("Postmodern ethics", "postmodern ethics", "undecided"), ("18", "eighteen", "undecided")])
+
+
+class CalibrationTests(unittest.TestCase):
+    """The 39 human-graded calibration responses with numeric references.
+
+    Answers are the last stated answer extracted from free text, so most stay
+    undecided; the point is that whatever the matcher does decide agrees with
+    the human majority. Regenerate the fixture from `localgate-tdm items`.
+    """
+
+    def test_decisions_agree_with_humans(self):
+        items = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        self.assertEqual(len(items), 39)
+        decided = 0
+        for item in items:
+            verdict, why = match(item["reference"], item["answer"])
+            if verdict == "undecided":
+                continue
+            decided += 1
+            with self.subTest(key=item["key"], reference=item["reference"], answer=item["answer"]):
+                self.assertEqual(verdict == "match", item["human_match"], why)
+        self.assertGreaterEqual(decided, 12)  # regression floor: 12/39 decided on 9 Oct 2026
+
+    def test_known_pairs(self):
+        cases = [("$606", "605.92", "match"), ("924.0", "921", "match"), ("6", "4", "no_match"),
+                 ("3.03 × 10^-19 joule", "3.0 \\times 10^-19 J", "match"), ("176°F", "80 °C", "match"),
+                 ("2", "٢", "undecided")]
+        for reference, answer, expected in cases:
+            with self.subTest(reference=reference, answer=answer):
+                self.assertEqual(match(reference, answer)[0], expected)
 
 
 if __name__ == "__main__":

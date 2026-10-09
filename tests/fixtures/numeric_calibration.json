@@ -1,0 +1,236 @@
+[
+ {
+  "key": "10004:0",
+  "reference": "-3.5 $^{\\circ} \\mathrm{C}$",
+  "answer": "If we assume T_2 should be higher than T_1, we must have \\frac1T_1 - \\frac1T_2 < 0. This means X must be negative. This would require \\Delta S to be negative (i.e., S_g > S_w). Since S_w > S_g, we stick to the original derived result.",
+  "human_match": false
+ },
+ {
+  "key": "10432:2",
+  "reference": "1296",
+  "answer": "1296",
+  "human_match": true
+ },
+ {
+  "key": "10593:4",
+  "reference": "2k",
+  "answer": "Reading a '1':",
+  "human_match": true
+ },
+ {
+  "key": "12187:4",
+  "reference": "0.965 ft",
+  "answer": ".\n3.",
+  "human_match": false
+ },
+ {
+  "key": "12242:0",
+  "reference": "176°F",
+  "answer": "264^\\circ",
+  "human_match": false
+ },
+ {
+  "key": "3489:2",
+  "reference": "1/2",
+  "answer": "This question is often associated with the",
+  "human_match": true
+ },
+ {
+  "key": "3817:2",
+  "reference": "-994.3 $\\mathrm{~kJ} \\mathrm{~mol}^{-1}$",
+  "answer": "Answer:",
+  "human_match": false
+ },
+ {
+  "key": "385:1",
+  "reference": "$60.00",
+  "answer": "60.00",
+  "human_match": true
+ },
+ {
+  "key": "3875:0",
+  "reference": "12.19K",
+  "answer": "",
+  "human_match": true
+ },
+ {
+  "key": "4058:4",
+  "reference": "240 ml",
+  "answer": "240",
+  "human_match": true
+ },
+ {
+  "key": "4472:0",
+  "reference": "146 g HCL",
+  "answer": "The weight of  that may be obtained is",
+  "human_match": true
+ },
+ {
+  "key": "553:0",
+  "reference": "50",
+  "answer": "Profit at x=50:",
+  "human_match": true
+ },
+ {
+  "key": "5545:0",
+  "reference": "2",
+  "answer": "٢",
+  "human_match": false
+ },
+ {
+  "key": "559:1",
+  "reference": "$2,000,000",
+  "answer": "2,000,000",
+  "human_match": true
+ },
+ {
+  "key": "5777:4",
+  "reference": "$10,000",
+  "answer": "10,000",
+  "human_match": true
+ },
+ {
+  "key": "5814:0",
+  "reference": "4",
+  "answer": "four",
+  "human_match": true
+ },
+ {
+  "key": "5814:1",
+  "reference": "4",
+  "answer": "four",
+  "human_match": true
+ },
+ {
+  "key": "5814:2",
+  "reference": "4",
+  "answer": "four",
+  "human_match": true
+ },
+ {
+  "key": "5814:3",
+  "reference": "4",
+  "answer": "four",
+  "human_match": true
+ },
+ {
+  "key": "5814:4",
+  "reference": "4",
+  "answer": "four",
+  "human_match": true
+ },
+ {
+  "key": "608:0",
+  "reference": "$606",
+  "answer": "605.92",
+  "human_match": true
+ },
+ {
+  "key": "617:1",
+  "reference": "$65,000.00",
+  "answer": "This matches the given Gross Sales of 72,800.",
+  "human_match": true
+ },
+ {
+  "key": "7346:1",
+  "reference": "$4",
+  "answer": "4.00",
+  "human_match": true
+ },
+ {
+  "key": "7855:2",
+  "reference": "1.0",
+  "answer": "",
+  "human_match": true
+ },
+ {
+  "key": "8036:3",
+  "reference": "0",
+  "answer": "Work Done:",
+  "human_match": true
+ },
+ {
+  "key": "8175:2",
+  "reference": "-14",
+  "answer": "Part 4: Calculating the sum",
+  "human_match": true
+ },
+ {
+  "key": "8581:0",
+  "reference": "32i",
+  "answer": "32i",
+  "human_match": true
+ },
+ {
+  "key": "8614:0",
+  "reference": "1.0",
+  "answer": "",
+  "human_match": false
+ },
+ {
+  "key": "8614:1",
+  "reference": "1.0",
+  "answer": "",
+  "human_match": false
+ },
+ {
+  "key": "8614:2",
+  "reference": "1.0",
+  "answer": "",
+  "human_match": true
+ },
+ {
+  "key": "8614:3",
+  "reference": "1.0",
+  "answer": "",
+  "human_match": true
+ },
+ {
+  "key": "8731:1",
+  "reference": "6",
+  "answer": "4",
+  "human_match": false
+ },
+ {
+  "key": "8943:2",
+  "reference": "-0.166",
+  "answer": "Sample Covariance Matrix",
+  "human_match": false
+ },
+ {
+  "key": "8946:0",
+  "reference": "11.25",
+  "answer": "Answer:",
+  "human_match": false
+ },
+ {
+  "key": "9059:1",
+  "reference": "0.46$\\mathrm{~J}$",
+  "answer": "Interpretation 1 is the intended method",
+  "human_match": true
+ },
+ {
+  "key": "9173:0",
+  "reference": "0.8c",
+  "answer": "0.8c",
+  "human_match": true
+ },
+ {
+  "key": "9325:4",
+  "reference": "924.0",
+  "answer": "921",
+  "human_match": true
+ },
+ {
+  "key": "9519:3",
+  "reference": "3.03 × 10^-19 joule",
+  "answer": "3.0 \\times 10^-19",
+  "human_match": true
+ },
+ {
+  "key": "9976:2",
+  "reference": "0.1 second of arc",
+  "answer": "Answer",
+  "human_match": false
+ }
+]

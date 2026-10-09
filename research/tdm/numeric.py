@@ -33,15 +33,19 @@ BASE_UNITS: dict[str, tuple[str, float]] = {
     "in": ("length", 0.0254), "ft": ("length", 0.3048), "lb": ("mass", 0.45359237),
     "lbm": ("mass", 0.45359237), "psi": ("pressure", 6894.757), "Btu": ("energy", 1055.06),
     "kWh": ("energy", 3.6e6), "hp": ("power", 745.7),
+    "joule": ("energy", 1.0), "joules": ("energy", 1.0), "meter": ("length", 1.0), "meters": ("length", 1.0),
+    "second": ("time", 1.0), "seconds": ("time", 1.0), "gram": ("mass", 1e-3), "grams": ("mass", 1e-3),
 }
 PREFIXES = {"G": 1e9, "M": 1e6, "k": 1e3, "c": 1e-2, "m": 1e-3, "μ": 1e-6, "µ": 1e-6, "u": 1e-6, "n": 1e-9, "p": 1e-12}
 PREFIXABLE = {"m", "g", "s", "J", "W", "N", "Pa", "V", "A", "Hz", "mol", "L", "eV", "cal", "Ω", "C", "F", "H", "T", "M"}
 TEMPERATURES = {"°C": "C", "°F": "F", "K": "K", "C°": "C", "degrees Celsius": "C", "degrees Fahrenheit": "F", "kelvin": "K"}
 CURRENCY = re.compile(r"^[$€£]")
 
-NUMBER = r"[-+−]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|[-+−]?\.\d+"
-SCIENTIFIC = rf"(?P<mant>{NUMBER})\s*(?:[eE](?P<exp1>[-+−]?\d+)|[x×*·]\s*10\s*\^?\s*\{{?(?P<exp2>[-+−]?\d+)\}}?)"
-FRACTION = r"(?P<num>[-+−]?\d+)\s*/\s*(?P<den>\d+)"
+# ASCII digits only: Python's \d also matches ٢ or ２, and a question about how a
+# numeral is written must not be decided by converting the glyph.
+NUMBER = r"[-+−]?(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)?|[-+−]?\.[0-9]+"
+SCIENTIFIC = rf"(?P<mant>{NUMBER})\s*(?:[eE](?P<exp1>[-+−]?[0-9]+)|[x×*·]\s*10\s*\^?\s*\{{?(?P<exp2>[-+−]?[0-9]+)\}}?)"
+FRACTION = r"(?P<num>[-+−]?[0-9]+)\s*/\s*(?P<den>[0-9]+)"
 RANGE = re.compile(rf"(?:{NUMBER})\s*(?:-|–|—|to|and)\s*(?:{NUMBER})")
 
 
@@ -66,6 +70,21 @@ def _units() -> dict[str, tuple[str, float]]:
 UNITS = _units()
 
 
+def _clean(text: str) -> str:
+    """Undo the LaTeX the released references and responses are written in.
+
+    ``-3.5 $^{\\circ} \\mathrm{C}$`` becomes ``-3.5 °C`` and ``3.0 \\times 10^-19`` becomes
+    ``3.0 × 10^-19``; anything that is not markup is left alone.
+    """
+    text = text.replace("$", "")
+    text = re.sub(r"\\(?:mathrm|text|mathbf|operatorname|rm)\s*\{([^{}]*)\}", r"\1", text)
+    text = re.sub(r"\^\s*\{?\s*\\circ\s*\}?|\\circ|\\degree", "°", text)
+    text = re.sub(r"\\(?:times|cdot)", "×", text)
+    text = re.sub(r"\\[,;!: ]|~", " ", text)
+    text = re.sub(r"°\s+([CF])\b", r"°\1", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
 def _number(text: str) -> float:
     return float(text.replace(",", "").replace("−", "-"))
 
@@ -76,7 +95,7 @@ def parse_quantity(text: str) -> Quantity | None:
     None covers text with no number, with several numbers (multi-part answers),
     and ranges, which the rubric never accepts as a point value.
     """
-    text = (text or "").strip().rstrip(".").strip()
+    text = _clean(text or "").rstrip(".").strip()
     text = CURRENCY.sub("", text).strip()
     if not text or RANGE.search(text):
         return None
