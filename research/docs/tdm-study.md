@@ -42,7 +42,7 @@ Applies the rubric's 1% rule in code when reference and answer both parse as a
 single quantity, and returns `undecided` otherwise. Unit tests:
 
 ```bash
-uv run python -m unittest discover tests
+uv run python -m unittest discover tests   # numeric matcher and decision client
 uv run localgate-tdm numeric --items output/tdm-items   # smoke test on calibration items
 ```
 
@@ -64,6 +64,7 @@ uv run localgate-tdm decide --instrument judge-nouls-v0 --items output/tdm-items
 | `openrouter:typesafe/jev-1.13-20260917` | `OPENROUTER_API_KEY` |
 | `workers-ai:@cf/cloudflare/clef` | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` |
 | `workers-ai:@cf/cloudflare/clef-flash` | same |
+| `readout:<model>` (open readout, any OpenAI-compatible API with log-probabilities) | `READOUT_BASE_URL` (default: local vLLM), `READOUT_API_KEY` |
 
 > [!WARNING]
 > Live calls cost money. Do not run on test items until the instruments are
