@@ -15,6 +15,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from research.data import structured
+
 DEFAULT_MODEL = "google/gemma-4-E2B-it"
 MAX_TOKENS = 6144
 TEMPERATURE = 1.0
@@ -155,6 +157,7 @@ def build_open_manifest(
     seed_base: int,
     versions: dict[str, str],
     energy_telemetry: bool | None,
+    output_format: str = "free",
 ) -> dict[str, Any]:
     manifest: dict[str, Any] = {
         "timestamp": datetime.now(UTC).isoformat(),
@@ -177,6 +180,17 @@ def build_open_manifest(
         "chat_template": "model default, no system message, zero-shot",
         "versions": versions,
     }
+    if output_format == "json":
+        # Only JSON runs carry these keys, so free-form manifests stay byte-identical
+        # and the released runs still resume.
+        manifest["task"] = "openended-json"
+        manifest["chat_template"] += ", JSON instruction appended to the question"
+        manifest["structured_output"] = {
+            "schema": structured.SCHEMA_VERSION,
+            "digest": structured.schema_digest(),
+            "backend": "vLLM structured outputs (JSON schema)",
+            "no_answer_rule": "finish_reason length or schema-invalid output",
+        }
     if energy_telemetry is not None:
         manifest["energy_telemetry"] = energy_telemetry
     return manifest
@@ -196,6 +210,7 @@ def check_manifest_compatible(existing: dict[str, Any], fresh: dict[str, Any]) -
         "gen_kwargs",
         "chat_template",
         "energy_telemetry",
+        "structured_output",
     )
     problems = []
     for key in keys:
@@ -318,6 +333,7 @@ def generate_open_repeat(
     seed: int,
     rep_file: Path,
     energy_telemetry: bool,
+    output_format: str = "free",
 ) -> int:
     """Generate and append one seeded repeat with a fresh vLLM engine."""
     todo = pending_open_ids(rep_file, [row["question_id"] for row in rows], seed=seed)
@@ -346,14 +362,16 @@ def generate_open_repeat(
             enable_prefix_caching=True,
             trust_remote_code=trust_remote_code,
         )
+        as_json = output_format == "json"
         params = SamplingParams(
             temperature=TEMPERATURE,
             top_p=TOP_P,
             top_k=TOP_K,
             max_tokens=MAX_TOKENS,
+            **(structured.structured_outputs_params() if as_json else {}),
         )
         conversations = [
-            [{"role": "user", "content": by_id[question_id]["open_question"]}]
+            [{"role": "user", "content": _content(by_id[question_id]["open_question"], output_format)}]
             for question_id in todo
         ]
         outputs = llm.chat(conversations, params, use_tqdm=True)
@@ -375,6 +393,12 @@ def generate_open_repeat(
                     "prompt_tokens": len(output.prompt_token_ids),
                     "output_tokens": len(completion.token_ids),
                 }
+                if as_json:
+                    parsed = structured.parse(completion.text, completion.finish_reason)
+                    record["answer_status"] = parsed["status"]
+                    record["final_answer"] = parsed.get("final_answer")
+                    if parsed["status"] != "ok":
+                        record["no_answer_reason"] = parsed["reason"]
                 handle.write(json.dumps(record) + "\n")
                 handle.flush()
         del llm
@@ -384,6 +408,10 @@ def generate_open_repeat(
     if energy_telemetry:
         validate_energy_telemetry(rep_file.parent)
     return len(todo)
+
+
+def _content(question: str, output_format: str) -> str:
+    return structured.prompt(question) if output_format == "json" else question
 
 
 def run_dir_for(base: Path, limit: int | None) -> Path:
@@ -415,6 +443,12 @@ def _open_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--corpus", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--profile", choices=tuple(OPEN_PROFILES), default="initial")
+    parser.add_argument(
+        "--output-format",
+        choices=("free", "json"),
+        default="free",
+        help="json: schema-constrained answers, reasoning steps first (task G1, decision D9)",
+    )
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--revision")
     parser.add_argument("--trust-remote-code", action="store_true")
@@ -455,10 +489,22 @@ def _run_open(args: argparse.Namespace) -> int:
         seed_base=profile.seed_base,
         versions=versions,
         energy_telemetry=True if profile.energy_telemetry else None,
+        output_format=args.output_format,
     )
     target = run_dir_for(args.out, args.limit)
     if args.dry_run:
-        print(json.dumps({"output": str(target), "manifest": manifest}, indent=2))
+        report: dict[str, Any] = {"output": str(target), "manifest": manifest}
+        if args.output_format == "json":
+            first = rows[0]
+            report["example"] = {
+                "question_id": first["question_id"],
+                "vllm_chat_message": {"role": "user", "content": _content(first["open_question"], "json")},
+                "schema": structured.ANSWER_SCHEMA,
+                "openai_compatible_request": structured.openai_request(
+                    args.model, first["open_question"], temperature=TEMPERATURE, top_p=TOP_P,
+                    max_tokens=MAX_TOKENS, seed=manifest["seeds"][0]),
+            }
+        print(json.dumps(report, indent=2, ensure_ascii=False))
         return 0
     if versions != profile.versions:
         raise RuntimeError(
@@ -477,6 +523,7 @@ def _run_open(args: argparse.Namespace) -> int:
             seed=seed,
             rep_file=rep_file,
             energy_telemetry=profile.energy_telemetry,
+            output_format=args.output_format,
         )
         print(f"rep{offset} seed={seed}: {generated} generated, {len(rows) - generated} saved")
     return 0

@@ -46,6 +46,22 @@ uv run python -m unittest discover tests   # numeric matcher and decision client
 uv run localgate-tdm numeric --items output/tdm-items   # smoke test on calibration items
 ```
 
+## Schema-constrained generation (G1)
+
+`--output-format json` makes the answering model write `{"steps": [...],
+"final_answer": {"text", "value", "unit"}}`, enforced during decoding by vLLM.
+Output cut off at the token limit or invalid against the schema is recorded as
+`answer_status: no_answer` and never sent to a judge. Free generation stays the
+default, so the released runs are unchanged; the two formats cannot share a run
+directory. The dry run prints the manifest, the vLLM chat message and the
+equivalent request for an OpenAI-compatible API (`response_format: json_schema`),
+without loading a model:
+
+```bash
+uv run localgate-data generate open --corpus <corpus.jsonl> --out output/json-pilot \
+  --output-format json --limit 5 --dry-run
+```
+
 ## Decision calls (S3)
 
 Sends a draft instrument to a pinned model and appends every call to a JSONL
