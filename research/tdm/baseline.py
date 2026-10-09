@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import random
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -35,6 +36,27 @@ def weighted_rate(cells: dict[str, list[int]], populations: dict[str, int]) -> f
     """Population-weighted mean of 0/1 outcomes sampled per cell."""
     total = sum(populations[c] for c in cells)
     return sum(populations[c] * sum(v) / len(v) for c, v in cells.items()) / total
+
+
+def wilson(successes: int, n: int, z: float = 1.959964) -> list[float]:
+    """95% Wilson interval for a proportion (well behaved for small n and 0 or n)."""
+    if n == 0:
+        return [float("nan"), float("nan")]
+    p = successes / n
+    centre = (p + z * z / (2 * n)) / (1 + z * z / n)
+    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
+    return [max(0.0, centre - half), min(1.0, centre + half)]
+
+
+def pi_from_table(table: dict[tuple[int, int], float]) -> float:
+    """Scott's pi from a (possibly weighted) 2x2 table {(rater_a, rater_b): weight}."""
+    total = sum(table.values())
+    if total == 0:
+        return float("nan")
+    observed = (table.get((0, 0), 0) + table.get((1, 1), 0)) / total
+    p1 = (sum(w for (a, _), w in table.items() if a == 1) + sum(w for (_, b), w in table.items() if b == 1)) / (2 * total)
+    expected = p1 * p1 + (1 - p1) * (1 - p1)
+    return (observed - expected) / (1 - expected) if expected < 1 else float("nan")
 
 
 def stratified_bootstrap(cells, populations, statistic, resamples, rng) -> list[float]:
@@ -80,17 +102,34 @@ def filter_report(rows: list[dict], resamples: int, rng: random.Random) -> dict:
             "estimated_convertible_rejections": yes_dropped,
         }
 
-    point = summary(cells, populations)
-    draws = stratified_bootstrap(cells, populations, summary, resamples, rng)
+    def weighted_pi(c, pops):
+        """Scott's pi between human majority and converter, each cell weighted to its population."""
+        table: dict[tuple[int, int], float] = defaultdict(float)
+        for (stratum, kept), labels in c.items():
+            weight = pops[(stratum, kept)] / len(labels)
+            for human in labels:
+                table[(human, int(kept))] += weight
+        return pi_from_table(table)
+
+    def full(c, pops):
+        return {**summary(c, pops), "scotts_pi": weighted_pi(c, pops),
+                "error_rate": 1 - (summary(c, pops)["precision"] * sum(pops[k] for k in kept_cells(c))
+                                   + (1 - summary(c, pops)["share_of_rejections_humans_accept"]) * sum(pops[k] for k in dropped_cells(c)))
+                / sum(pops[k] for k in c)}
+
+    point = full(cells, populations)
+    draws = stratified_bootstrap(cells, populations, full, resamples, rng)
     intervals = {k: quantiles([d[k] for d in draws]) for k in point}
-    per_cell = {
-        f"{stratum}|{'kept' if kept else 'dropped'}": {
+    per_cell = {}
+    for (stratum, kept), v in sorted(cells.items()):
+        agree = sum(v) if kept else len(v) - sum(v)  # converter and human majority say the same
+        per_cell[f"{stratum}|{'kept' if kept else 'dropped'}"] = {
             "population": populations[(stratum, kept)],
             "audited": len(v),
             "human_convertible_rate": sum(v) / len(v),
+            "agreement_with_converter": agree / len(v),
+            "agreement_wilson_95": wilson(agree, len(v)),
         }
-        for (stratum, kept), v in sorted(cells.items())
-    }
     pairs = [(int(r["human_majority"]), int(r["baseline_convertible"])) for r in audited]
     return {
         "audited_with_majority": len(audited),
@@ -99,7 +138,10 @@ def filter_report(rows: list[dict], resamples: int, rng: random.Random) -> dict:
         "bootstrap_95": intervals,
         "cells": per_cell,
         "sample_unweighted": {"scotts_pi": scotts_pi(pairs), **confusion(pairs)},
-        "note": "Sample pi and confusion are unweighted and over-represent rejected strata.",
+        "note": "population_weighted (with bootstrap_95) is the estimate for the whole conversion; "
+        "sample_unweighted over-represents rejected strata. error_rate = population share where converter and human "
+        "majority disagree. Per stratum, the converter's decision is constant except in the borderline stratum, so "
+        "per-cell agreement replaces per-stratum precision/recall.",
     }
 
 
@@ -167,12 +209,38 @@ def judging_report(rows: list[dict]) -> dict:
         by_category[r["category"]].append(unanimous)
         quartile = sum(r["judge_tokens_in_median"] > c for c in cuts) + 1
         by_length[f"Q{quartile}"].append(unanimous)
+    graded_lengths = sorted(r["output_tokens"] for r in graded)
+    graded_cuts = [graded_lengths[int(q * len(graded_lengths))] for q in (1 / 3, 2 / 3)]
+
+    def vs_humans(key):
+        groups = defaultdict(list)
+        for r in graded:
+            groups[key(r)].append((int(r["human_match"]), int(r["baseline_match"])))
+        out = {}
+        for name, g in sorted(groups.items()):
+            agree = sum(h == p for h, p in g)
+            both_classes = len({h for h, _ in g} | {p for _, p in g}) == 2
+            out[name] = {"responses": len(g), "accuracy": agree / len(g), "accuracy_wilson_95": wilson(agree, len(g)),
+                         "scotts_pi": scotts_pi(g) if both_classes else None, **confusion(g)}
+        return out
+
+    def length_band(r):
+        band = sum(r["output_tokens"] > c for c in graded_cuts)
+        return ["short", "medium", "long"][band]
+
+    disagree = sum(h != p for h, p in pairs)
     return {
         "calibration_sample": {
             "responses": len(graded),
             "panel": {"scotts_pi": scotts_pi(pairs), **confusion(pairs)},
             "per_judge": per_judge,
-            "discordant_share": sum(h != p for h, p in pairs) / len(pairs),
+            "discordant_share": disagree / len(pairs),
+            "discordant_wilson_95": wilson(disagree, len(pairs)),
+            "panel_vs_humans_by_reference_type": vs_humans(lambda r: r["reference_type"]),
+            "panel_vs_humans_by_category": vs_humans(lambda r: r["category"]),
+            "panel_vs_humans_by_response_length": vs_humans(length_band),
+            "response_length_tercile_cuts_tokens": graded_cuts,
+            "note": "Groups are small (100 responses in all); read them as where errors concentrate, not as estimates.",
         },
         "panel_disagreement": {
             "responses": len(rows),
@@ -183,6 +251,33 @@ def judging_report(rows: list[dict]) -> dict:
             "quartile_cuts_tokens": cuts,
         },
     }
+
+
+def power_inputs(report: dict) -> dict:
+    """Baseline error rate against gold per stage: what H4's power analysis starts from.
+
+    The paired non-inferiority test needs the share of items where candidate and
+    baseline disagree. Before any candidate exists, the baseline's own error rate
+    against gold bounds it: if the candidate is about as accurate, discordance
+    is roughly 2e(1-e) with independent errors and at most 2e with no overlap.
+    """
+    f, r, j = report["filter"], report["rewrite"], report["judging"]["calibration_sample"]
+    stages = {
+        "filter": {"error_rate": f["population_weighted"]["error_rate"], "ci_95": f["bootstrap_95"]["error_rate"],
+                   "basis": f"{f['audited_with_majority']} Stage-1 audits, population-weighted"},
+        "rewrite_meaning": {"error_rate": r["same_question"]["weighted_failure_rate"],
+                            "ci_95": r["same_question"]["bootstrap_95"], "basis": f"{r['audited']} Stage-2 audits"},
+        "rewrite_self_contained": {"error_rate": r["self_contained"]["weighted_failure_rate"],
+                                   "ci_95": r["self_contained"]["bootstrap_95"],
+                                   "basis": f"{r['audited']} Stage-2 audits (criterion under review, D2)"},
+        "grading": {"error_rate": j["discordant_share"], "ci_95": j["discordant_wilson_95"],
+                    "basis": f"{j['responses']} human-graded responses"},
+    }
+    for s in stages.values():
+        e = s["error_rate"]
+        s["discordance_if_independent"] = 2 * e * (1 - e)
+        s["discordance_upper"] = min(1.0, 2 * e)
+    return stages
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -211,6 +306,7 @@ def main(argv: list[str] | None = None) -> int:
         "judging": judging_report(read_table(args.items / "judging.jsonl")),
         "bootstrap": {"resamples": args.resamples, "seed": BOOTSTRAP_SEED},
     }
+    report["power_inputs"] = power_inputs(report)
     write_json_new(args.out, report)
     f = report["filter"]["population_weighted"]
     r = report["rewrite"]
