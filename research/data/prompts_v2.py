@@ -55,10 +55,10 @@ Separately, judge the answer key. answer_key_ok = false when the reference looks
 Examples (invented):
 - "Which of the following is not a phase of matter?" -> convertible false: excludes.
 - "Which of these numbers is the largest?", answer "17" -> false: ranks the options.
-- "Which is the landlord's best defence?" after a case -> false: ranks the options.
-- "The premium on a $60,000 policy at $.2065 per $100 is", answer "$124" -> true: $123.90 is within 1%.
-- "Differentiate breathing from respiration", answer the standard textbook contrast -> true.
-- "Mixing 50 ml of 0.5 M with 75 ml of 0.25 M H2SO4 gives", answer "35 M" -> convertible true, answer_key_ok false (it is 0.35 M)."""
+- "Which treatment is most appropriate for this patient?" after a case -> false: ranks the options.
+- "A $2,500 deposit at 3.1% simple interest earns in one year", answer "$78" -> true: $77.50 is within 1%.
+- "Explain why the sky is blue", answer the standard textbook account -> true.
+- "A car covers 120 km in 2 hours; its average speed is", answer "6 km/h" -> convertible true, answer_key_ok false (it is 60 km/h)."""
 
 # ── Converter: readmission ───────────────────────────────────────────────────
 # Re-reads the rejects. Deliberately not a copy of the filter prompt, and it must not
@@ -78,7 +78,7 @@ Score 1 when the question excludes ("which is NOT", "EXCEPT") or points at the o
 - 8-9: self-contained, slight doubt about phrasing or a near-synonym.
 - 10: plainly the only answer.
 
-Do not lower the score for: several parts that each have one answer; working from data the stem gives; numbers within 1% of the reference under a standard method (a rounded "$124" for $123.90 is the same answer); an explain or define question whose reference is the standard textbook answer; the reference's wording."""
+Do not lower the score for: several parts that each have one answer; working from data the stem gives; numbers within 1% of the reference under a standard method (a rounded "$78" for $77.50 is the same answer); an explain or define question whose reference is the standard textbook answer; the reference's wording."""
 
 # ── Converter: rewrite ───────────────────────────────────────────────────────
 
@@ -173,7 +173,7 @@ Find the response's final answer: what it concludes, not what it considers on th
 
 The reference is authoritative. Do not solve the question or judge the reasoning; if the final answer disagrees with the reference, it is no_match even if you believe the response.
 
-match: the final answer states the same fact as the reference. Wording, language, formatting and extra correct detail do not matter ("Labrador" matches "dog"). Another word for the same thing is the same fact ("irrelevance" for "irrelevant conclusion"). Numbers match within 1% relative error in any unit convertible from the reference's; a range never matches a single value.
+match: the final answer states the same fact as the reference. Wording, language, formatting and extra correct detail do not matter ("Labrador" matches "dog"). Another word for the same thing is the same fact ("attacking the person" for "ad hominem"). Numbers match within 1% relative error in any unit convertible from the reference's; a range never matches a single value.
 
 no_match: the final answer states a different fact, leaves out a fact the reference requires, or gives two or more answers as equally final ("X or Y, depending on ...").
 

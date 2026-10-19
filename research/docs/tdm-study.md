@@ -76,7 +76,7 @@ uv run localgate-grade --prompts v2 ...                  # judge panel
 v2 adds `answer_key_ok` to the filter output and keeps long cases and passages word
 for word: the model rewrites only the final question sentence, and a rewrite much
 shorter than a long original gets `length_flag`. Digests: converter v1 `93057f756115`,
-v2 `87b2e56f8c37`; grading v1 `e2c597632659`, v2 `feb67c68c95a`.
+v2 `fd0d7955abc6`; grading v1 `e2c597632659`, v2 `041e934161ea`.
 
 ## Instruments (I1)
 

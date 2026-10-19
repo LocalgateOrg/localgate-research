@@ -6,7 +6,7 @@ How it is shown in the annotation apps (H6):
 
 - **The flowchart for the current pass is always visible** beside the item. The worked examples sit one click away.
 - **In every pass, "yes" means "fine".** The old rubric mixed the two polarities, and one rater answered a whole question on a flipped scale.
-- **Every outcome has one example.** Several are paraphrases of items from the existing audits and calibration set (for example 9325:4, 11248:1, 11702:1, 10483:0, 897:2, 429, 4486, 1029). Those items are therefore dev data only: they must not be used as evidence of label reliability, which comes from fresh test items.
+- **Every outcome has one invented example.** None is taken or paraphrased from the existing audit or calibration items, so those items stay clean for checking label reliability.
 - **"Unsure" is allowed, but use it rarely.** Unsure items go to adjudication.
 
 ---
@@ -30,17 +30,17 @@ You see the multiple-choice question, its options and the correct option.
 
 *(110 words)*
 
-**Examples.** Wording simplified; some are modelled on existing audit items (dev data).
+**Examples.** All invented.
 
 | Question | Reference | Key usable? | Converts? | Why |
 |---|---|---|---|---|
-| Which of the following is not a phase of matter? | plasma | yes | **no** | excludes |
-| Which is the landlord's best defence? (after a case) | lack of privity | yes | **no** | ranks options over a case |
-| An example of a noble gas is | argon | yes | **no** | one of many |
-| The premium on a $60,000 policy at $.2065 per $100 is | $124 | yes | **yes** | $123.90 is within 1% |
-| Differentiate breathing from respiration. | the standard textbook contrast | yes | **yes** | the standard answer |
-| Mixing 50 ml of 0.5 M with 75 ml of 0.25 M H₂SO₄ gives | 35 M | **no**: should be 0.35 M | **yes** | the question is fine; the key is not |
-| Minimum muzzle speed for a shell to escape Earth | 1.12 | **no**: units and magnitude missing | **yes** | |
+| Which of the following is not a primary colour of light? | yellow | yes | **no** | excludes |
+| Which treatment is most appropriate for this patient? (after a case) | antibiotic X | yes | **no** | ranks options over a case |
+| An example of a mammal that lays eggs is | platypus | yes | **no** | one of many (echidnas too) |
+| A $2,500 deposit at 3.1% simple interest earns in one year | $78 | yes | **yes** | $77.50 is within 1% |
+| Explain why the sky is blue. | the standard textbook account (Rayleigh scattering) | yes | **yes** | the standard answer |
+| A car covers 120 km in 2 hours; its average speed is | 6 km/h | **no**: should be 60 km/h | **yes** | the question is fine; the key is not |
+| The speed of sound in air at 20 °C is | 343 | **no**: unit missing | **yes** | |
 
 ---
 
@@ -62,11 +62,11 @@ You see the original question, its options, the correct option, and the open-end
 
 *(99 words)*
 
-**Examples.** Wording simplified; some are modelled on existing audit items (dev data).
+**Examples.** All invented.
 
 | Original | Rewrite | Same? | Included? |
 |---|---|---|---|
-| (a 12-line traffic-accident case) Which judgment is appropriate? | What is the appropriate judgment in the case? (case missing) | **no** | **no** |
+| (a 10-line contract dispute) Who wins the case? | Who wins the case? (dispute missing) | **no** | **no** |
 | Which of the following is true about photosynthesis? | Which statement about light reactions is true? | **no**: narrowed toward the answer | yes |
 | The capital of France is | What is the capital of France? | yes | yes |
 | (passage) From the passage, one may infer that | Based on the passage, what can one infer? (passage kept) | yes | yes |
@@ -90,17 +90,17 @@ You see the question, the reference answer and the model's response.
 
 *(97 words)*
 
-**Examples.** Wording simplified; some are modelled on existing audit items (dev data).
+**Examples.** All invented.
 
 | Reference | Final answer | Verdict | Why |
 |---|---|---|---|
 | dog | a Labrador | **match** | extra correct detail |
-| irrelevant conclusion | the fallacy of irrelevance | **match** | another word for the same thing |
-| 924 V | about 921 V | **match** | 0.3% apart |
-| (1/6) erg/m³ | 1.67 × 10⁻⁸ J/m³ | **match** | the same value in other units |
+| ad hominem | attacking the person instead of the argument | **match** | another word for the same thing |
+| 1,500 m/s | about 1,509 m/s | **match** | 0.6% apart |
+| 2 km | 2,000 m | **match** | the same value in other units |
 | 6 kg | between 5 and 7 kg | **no_match** | a range is not a value |
-| not guilty | "probably not guilty, though a lesser charge is possible" | **match** | a conclusion with a caveat |
-| all three systems | "all three work… or, if forced, two's complement" | **no_match** | two answers given as final |
+| Paris | "Paris, although a few sources point to Lyon" | **match** | a conclusion with a caveat |
+| mitosis | "either mitosis or meiosis, depending on the cell" | **no_match** | two answers given as final |
 | 100 °C | (stops mid-calculation) | **no_answer** | cut off |
 
 ---
