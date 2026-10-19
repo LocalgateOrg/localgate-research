@@ -6,7 +6,7 @@ How it is shown in the annotation apps (H6):
 
 - **The flowchart for the current pass is always visible** beside the item. The worked examples sit one click away.
 - **In every pass, "yes" means "fine".** The old rubric mixed the two polarities, and one rater answered a whole question on a flipped scale.
-- **Every outcome has one invented example.** None of them comes from the items you will label.
+- **Every outcome has one example.** Several are paraphrases of items from the existing audits and calibration set (for example 9325:4, 11248:1, 11702:1, 10483:0, 897:2, 429, 4486, 1029). Those items are therefore dev data only: they must not be used as evidence of label reliability, which comes from fresh test items.
 - **"Unsure" is allowed, but use it rarely.** Unsure items go to adjudication.
 
 ---
@@ -30,7 +30,7 @@ You see the multiple-choice question, its options and the correct option.
 
 *(110 words)*
 
-**Examples.** All invented.
+**Examples.** Wording simplified; some are modelled on existing audit items (dev data).
 
 | Question | Reference | Key usable? | Converts? | Why |
 |---|---|---|---|---|
@@ -62,7 +62,7 @@ You see the original question, its options, the correct option, and the open-end
 
 *(99 words)*
 
-**Examples.** All invented.
+**Examples.** Wording simplified; some are modelled on existing audit items (dev data).
 
 | Original | Rewrite | Same? | Included? |
 |---|---|---|---|
@@ -90,7 +90,7 @@ You see the question, the reference answer and the model's response.
 
 *(97 words)*
 
-**Examples.** All invented.
+**Examples.** Wording simplified; some are modelled on existing audit items (dev data).
 
 | Reference | Final answer | Verdict | Why |
 |---|---|---|---|
